@@ -1,5 +1,6 @@
 package com.xiaoyaoworm.mycriminalintent;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -9,7 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.xiaoyaoworm.model.Crime;
 import com.xiaoyaoworm.model.CrimeLab;
@@ -23,8 +23,12 @@ import java.util.List;
 
 public class CrimeListFragment extends Fragment {
 
+    private static final String SAVED_POSITION = "SAVED_POSITION";
+
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mCrimeAdapter;
+    private int savedPosition;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
@@ -33,16 +37,35 @@ public class CrimeListFragment extends Fragment {
         mCrimeRecyclerView = (RecyclerView) view.findViewById(R.id.crime_recycler_view);
         mCrimeRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
 
-        updateUI();
+        if (savedInstanceState != null) {
+            savedPosition = savedInstanceState.getInt(SAVED_POSITION);
+        }
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateUI();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle onSavedInstanceState) {
+        super.onSaveInstanceState(onSavedInstanceState);
+        onSavedInstanceState.putSerializable(SAVED_POSITION, savedPosition);
     }
 
     private void updateUI(){
         CrimeLab crimeLab = CrimeLab.get(getActivity());
         List<Crime> crimes = crimeLab.getCrimes();
-        mCrimeAdapter = new CrimeAdapter(crimes);
-        mCrimeRecyclerView.setAdapter(mCrimeAdapter);
+
+        if(mCrimeAdapter == null) {
+            mCrimeAdapter = new CrimeAdapter(crimes);
+            mCrimeRecyclerView.setAdapter(mCrimeAdapter);
+        } else{
+            mCrimeAdapter.notifyItemChanged(savedPosition);
+        }
     }
 
     private class CrimeHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
@@ -69,7 +92,9 @@ public class CrimeListFragment extends Fragment {
 
         @Override
         public void onClick(View v) {
-            Toast.makeText(getActivity(), mCrime.getTitle() + " clicked!", Toast.LENGTH_LONG).show();
+            savedPosition = getAdapterPosition();
+            Intent intent = CrimeActivity.newIntent(getActivity(), mCrime.getId());
+            startActivity(intent);
         }
     }
 
